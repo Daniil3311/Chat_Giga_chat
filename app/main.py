@@ -1,11 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
-from app.giga_ch import get_giga_client, get_embedding
-# from utils import should_save_message
-
-from fastapi.middleware.cors import CORSMiddleware
+from app.db.models import Knowledge
+from .db.session import SessionLocal
+from app.giga_ch import giga, get_chat_history
 
 app = FastAPI()
 
@@ -20,20 +18,26 @@ class ChatResponse(BaseModel):
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(req: ChatRequest):
-    # db: Session = SessionLocal()
+    db = SessionLocal()
     try:
         # 3. Получаем ответ от GigaChat
-        client = get_giga_client()
-        response = client.chat(req.message)
+
+
+        history = get_chat_history(db, limit=10)
+        messages = [{"role": msg.role, "content": msg.content} for msg in history]
+        messages.append({"role": "user", "content": req.message})
+
+        response = giga.chat({"messages": messages})
         answer = response.choices[0].message.content
 
-        # 4. Сохраняем только полезные сообщения
-        #
-        # db.add(Message(role="user", content=req.message))
-        # db.add(Message(role="assistant", content=answer))
+        db.add(Knowledge(role="user", content=req.message))
+        db.add(Knowledge(role="assistant", content=answer))
 
-        # db.commit()
+        db.commit()
         return {"answer": answer}
-
+    except Exception as e:
+        db.rollback()
+        # Возвращаем ошибку HTTP
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
-        print('усе')
+        db.close()

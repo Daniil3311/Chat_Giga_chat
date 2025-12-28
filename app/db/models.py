@@ -7,5 +7,7 @@ class Knowledge(Base):
 
     id = Column(Integer, primary_key=True)
     content = Column(Text, nullable=False)
-    category = Column(String, default="faq")
-    embedding = Column(Vector(1536))
+    role = Column(String, index=True)
+    # category = Column(String, default="faq")
+    # embedding = Column(Vector(1536))
+
