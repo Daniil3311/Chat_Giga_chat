@@ -6,4 +6,7 @@ psycopg2-binary
 pgvector
 python-dotenv
 gigachat
+redis
+sqlalchemy==2.0.32
+
 
