@@ -1,9 +1,5 @@
 from abc import ABC, abstractmethod
-
-from fastapi import HTTPException, Depends
-from sqlalchemy.orm import Session
-
-from .session import SessionLocal, get_db
+from fastapi import HTTPException
 from models.model_chat import Knowledge
 from .get_data_from_db import get_chat_history
 
@@ -32,16 +28,17 @@ class ChatStorage(ABC):
 class ChatRepositoryAlchemy(ChatStorage):
 
     def save(self, user_mes, assistant_mes, db):
-        try:
-            db.add(Knowledge(role="user", content=user_mes))
-            db.add(Knowledge(role="assistant", content=assistant_mes))
-            db.commit()
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+        db.add(Knowledge(role="user", content=user_mes))
+        db.add(Knowledge(role="assistant", content=assistant_mes))
+        db.commit()
+
 
     def get(self, db):
         history = get_chat_history(db, limit=10)
         messages = [{"role": msg.role, "content": msg.content} for msg in history] # история сообщений из бд по роле и контексту
+        # r = db.query(Knowledge).order_by(Knowledge.id.desc()).all()
+        # result = db.execute(f"EXPLAIN {r}")
+        # print(result.fetchall())
         return messages
 
     def delete(self):
